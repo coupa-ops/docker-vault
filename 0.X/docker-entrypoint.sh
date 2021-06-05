@@ -115,6 +115,8 @@ telemetry {
 
 cluster_addr  = "${VAULT_CLUSTER_ADDR}"
 api_addr      = "${VAULT_REDIRECT_ADDR}"
+
+plugin_directory = "/etc/vault/vault_plugins"
 EOF
 )
 

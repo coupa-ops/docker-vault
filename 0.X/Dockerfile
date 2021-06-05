@@ -53,6 +53,14 @@ RUN set -eux; \
     apk del gnupg openssl && \
     rm -rf /root/.gnupg
 
+# Set VENAFI plugins.
+RUN set -eux; \
+    mkdir -p /etc/vault/vault_plugins && \
+    wget https://github.com/Venafi/vault-pki-backend-venafi/releases/download/v0.9.1/venafi-pki-backend_v0.9.1_linux.zip && \
+    unzip -d /etc/vault/vault_plugins venafi-pki-backend_v0.9.1_linux.zip && \
+    wget https://github.com/Venafi/vault-pki-monitor-venafi/releases/download/v0.9.0/venafi-pki-monitor_v0.9.0_linux_strict.zip && \
+    unzip -d /etc/vault/vault_plugins venafi-pki-monitor_v0.9.0_linux_strict.zip
+
 # /vault/logs is made available to use as a location to store audit logs, if
 # desired; /vault/file is made available to use as a location with the file
 # storage backend, if desired; the server will be started with /vault/config as
