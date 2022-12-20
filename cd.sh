@@ -42,7 +42,7 @@ function vaultDockerfileLint
 function vaultImageBuild
 {
   infoLog "Building Vault Image with tag ${IMAGE_TAG}"
-  /usr/bin/docker build -t ${IMAGE_TAG} $(dirname ${DOCKERFILE_PATH})
+  /usr/bin/docker build -t ${IMAGE_TAG} $(dirname ${DOCKERFILE_PATH}) --network host
 }
 
 function ecrDockerLogin
