@@ -101,7 +101,7 @@ function upgradeVaultCluster
   region=$1
   cluster=$2
   infoLog "Upgrading AWS Coupadev Vault Cluster ${cluster} from region ${region} with Vault Image tag ${VAULT_VERSION}"
-  cd /opt/coupa-flash/5.0 && bundle exec rake services:ecs:update_docker_image["${cluster}","${VAULT_VERSION}"]
+  cd /opt/coupa-flash/6.0 && bundle exec rake services:ecs:update_docker_image["${cluster}","${VAULT_VERSION}"]
 }
 
 CD_OPERATION="$1"

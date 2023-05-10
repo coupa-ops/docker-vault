@@ -1,7 +1,7 @@
-FROM alpine:3.17.2
+FROM alpine:3.18.0
 
 # This is the release of Vault to pull in.
-ARG VAULT_VERSION=1.12.3
+ARG VAULT_VERSION=1.12.6
 
 # Install dependencies
 RUN \
@@ -18,7 +18,7 @@ RUN addgroup vault && \
 
 # Set up certificates, our base tools, and Vault.
 RUN set -eux; \
-    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata && \
+    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata gnupg-keyboxd && \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
         armhf) ARCH='arm' ;; \
@@ -52,7 +52,7 @@ RUN set -eux; \
     rm -rf /tmp/build && \
     gpgconf --kill dirmngr && \
     gpgconf --kill gpg-agent && \
-    apk del gnupg openssl && \
+    apk del gnupg openssl gnupg-keyboxd && \
     rm -rf /root/.gnupg
 
 # /vault/logs is made available to use as a location to store audit logs, if
