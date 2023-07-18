@@ -16,8 +16,8 @@ pipeline {
 
   environment {
     BRANCH_NAME = "${ghprbSourceBranch ? ghprbSourceBranch : GIT_BRANCH.split("/")[1]}"
-    VAULT_VERSION = sh (returnStdout: true, script: "./cd.sh vaultImageVersion").trim()
-    VAULT_IMAGE_TAG = sh (returnStdout: true, script: "./cd.sh vaultImageTag").trim()
+    VAULT_VERSION = sh(returnStdout: true, script: "./cd.sh vaultImageVersion").trim()
+    VAULT_IMAGE_TAG = sh(returnStdout: true, script: "./cd.sh vaultImageTag").trim()
     IMAGE_SCAN_RESULTS = 'vault-scan-results.json'
     APPROVERS = 'parvez.kazi@coupa.com,ramesh.sencha@coupa.com,marutinandan.pandya@coupa.com'
   }
@@ -35,38 +35,38 @@ pipeline {
       }
     }
 
-   stage('Scan Image') {
-  steps {
-    echo 'Scanning Vault image using Twistlock plugin'
-    prismaCloudScanImage ca: '',
-      cert: '',
-      dockerAddress: 'unix:///var/run/docker.sock',
-      image: "${VAULT_IMAGE_TAG}",
-      key: '',
-      logLevel: 'info',
-      podmanPath: '',
-      project: '',
-      resultsFile: "${IMAGE_SCAN_RESULTS}",
-      ignoreImageBuildTime: true
-    echo 'Scanning completed for vulnerabilities in the image!!'
+    stage('Scan Image') {
+      steps {
+        echo 'Scanning Vault image using Twistlock plugin'
+        prismaCloudScanImage ca: '',
+          cert: '',
+          dockerAddress: 'unix:///var/run/docker.sock',
+          image: "${VAULT_IMAGE_TAG}",
+          key: '',
+          logLevel: 'info',
+          podmanPath: '',
+          project: '',
+          resultsFile: "${IMAGE_SCAN_RESULTS}",
+          ignoreImageBuildTime: true
+        echo 'Scanning completed for vulnerabilities in the image!!'
 
-    script {
-      def skip_failure = params.SKIP_FAILURE
-      echo "${skip_failure}"
-      def json = readFile("${IMAGE_SCAN_RESULTS}")
-      def vulnerabilities = new groovy.json.JsonSlurper().parseText(json)
-      def highSeverityVulnerabilities = vulnerabilities.high
-      echo "highSeverityVulnerabilities : ${highSeverityVulnerabilities}"
-      if (highSeverityVulnerabilities > 0) {
-        if (skip_failure) {
-          echo "High severity vulnerabilities found, but the pipeline will continue as SKIP_FAILURE is enabled."
-        } else {
-          error("High severity vulnerabilities found in the image scan results.")
+        script {
+          def skip_failure = params.SKIP_FAILURE
+          echo "${skip_failure}"
+          def json = readFile("${IMAGE_SCAN_RESULTS}")
+          def vulnerabilities = new groovy.json.JsonSlurper().parseText(json)
+          def highSeverityVulnerabilities = vulnerabilities.high
+          echo "highSeverityVulnerabilities : ${highSeverityVulnerabilities}"
+          if (highSeverityVulnerabilities > 0) {
+            if (skip_failure) {
+              echo "High severity vulnerabilities found, but the pipeline will continue as SKIP_FAILURE is enabled."
+            } else {
+              error("High severity vulnerabilities found in the image scan results.")
+            }
+          }
         }
       }
     }
-  }
-}
 
     stage('Push Image') {
       when { expression { BRANCH_NAME == 'master' } }
@@ -105,39 +105,40 @@ pipeline {
     }
 
     stage('Upgrade Dev Clusters') {
-  when {
-    expression { BRANCH_NAME == 'master' && currentBuild.result == 'SUCCESS' }
-    beforeInput true
-    beforeOptions true
-  }
-  options {
-    timeout(time: 24, unit: "HOURS")
-  }
-  input {
-    message "Should we continue to upgrade ALL Vault Dev clusters with new version ${env.VAULT_VERSION}?"
-    ok "Yes, we should."
-    submitter "${env.APPROVERS}"
-  }
-  stages {
-    stage('Upgrade vcqe-dev Cluster') {
-      steps {
-        sh label: "Upgrade vcqe-dev Cluster", script: "./cd.sh upgradeDevVaultClusters vcqe-dev"
+      when {
+        expression { BRANCH_NAME == 'master' && currentBuild.result == 'SUCCESS' }
+        beforeInput true
+        beforeOptions true
       }
-    }
+      options {
+        timeout(time: 24, unit: "HOURS")
+      }
+      input {
+        message "Should we continue to upgrade ALL Vault Dev clusters with new version ${env.VAULT_VERSION}?"
+        ok "Yes, we should."
+        submitter "${env.APPROVERS}"
+      }
+      stages {
+        stage('Upgrade vcqe-dev Cluster') {
+          steps {
+            sh label: "Upgrade vcqe-dev Cluster", script: "./cd.sh upgradeDevVaultClusters vcqe-dev"
+          }
+        }
 
-    stage('Validation') {
-      steps {
-        sh label: "Validate Vault_monitor.rb", script: "/opt/coupa/bin/vault_monitor.rb"
-      }
-    }
+        stage('Validation') {
+          steps {
+            sh label: "Validate Vault_monitor.rb", script: "/opt/coupa/bin/vault_monitor.rb"
+          }
+        }
 
-    stage('Upgrade dev-us-east-1 Cluster') {
-      steps {
-        sh label: "Upgrade dev-us-east-1 Cluster", script: "./cd.sh upgradeDevVaultClusters dev-us-east-1"
+        stage('Upgrade dev-us-east-1 Cluster') {
+          steps {
+            sh label: "Upgrade dev-us-east-1 Cluster", script: "./cd.sh upgradeDevVaultClusters dev-us-east-1"
+          }
+        }
       }
     }
   }
-}
 
   post {
     success {
