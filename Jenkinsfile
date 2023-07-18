@@ -66,7 +66,7 @@ pipeline {
       }
     }
   }
-
+}
 
     stage('Push Image') {
       when { expression { BRANCH_NAME == 'master' } }
