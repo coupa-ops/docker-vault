@@ -16,8 +16,8 @@ pipeline {
 
   environment {
     BRANCH_NAME = "${ghprbSourceBranch ? ghprbSourceBranch : GIT_BRANCH.split("/")[1]}"
-    VAULT_VERSION = sh(returnStdout: true, script: "./cd.sh vaultImageVersion").trim()
-    VAULT_IMAGE_TAG = sh(returnStdout: true, script: "./cd.sh vaultImageTag").trim()
+    VAULT_VERSION = sh (returnStdout: true, script: "./cd.sh vaultImageVersion").trim()
+    VAULT_IMAGE_TAG = sh (returnStdout: true, script: "./cd.sh vaultImageTag").trim()
     IMAGE_SCAN_RESULTS = 'vault-scan-results.json'
     APPROVERS = 'parvez.kazi@coupa.com,ramesh.sencha@coupa.com,marutinandan.pandya@coupa.com'
   }
@@ -50,6 +50,21 @@ pipeline {
           ignoreImageBuildTime: true
         echo 'Scanning completed for vulnerabilities in the image!!'
             
+        script {
+          def skip_failure = params.SKIP_FAILURE
+          echo "${skip_failure}"
+          def json = readFile("${IMAGE_SCAN_RESULTS}")
+          def vulnerabilities = new groovy.json.JsonSlurper().parseText(json)
+          def highSeverityVulnerabilities = vulnerabilities.high
+          echo "highSeverityVulnerabilities : ${highSeverityVulnerabilities}"
+          if (highSeverityVulnerabilities > 0) {
+            if (skip_failure) {
+              echo "High severity vulnerabilities found, but the pipeline will continue as SKIP_FAILURE is enabled."
+            } else {
+              error("High severity vulnerabilities found in the image scan results.")
+            }
+          }
+        }
       } 
     }
 
