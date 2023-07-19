@@ -1,4 +1,7 @@
 pipeline {
+  parameters {
+    booleanParam(name: 'SKIP_FAILURE', defaultValue: false, description: 'Skip pipeline failure if high severity CVEs are found')
+  }
   agent {
     node {
       label 'rundeck'
@@ -36,18 +39,35 @@ pipeline {
       steps {
         echo 'Scanning Vault image using Twistlock plugin'
         prismaCloudScanImage ca: '',
-        cert: '',
-        dockerAddress: 'unix:///var/run/docker.sock',
-        image: "${VAULT_IMAGE_TAG}",
-        key: '',
-        logLevel: 'info',
-        podmanPath: '',
-        project: '',
-        resultsFile: "${IMAGE_SCAN_RESULTS}",
-        ignoreImageBuildTime: true
+          cert: '',
+          dockerAddress: 'unix:///var/run/docker.sock',
+          image: "${VAULT_IMAGE_TAG}",
+          key: '',
+          logLevel: 'info',
+          podmanPath: '',
+          project: '',
+          resultsFile: "${IMAGE_SCAN_RESULTS}",
+          ignoreImageBuildTime: true
         echo 'Scanning completed for vulnerabilities in the image!!'
-      }
+            
+        script {
+          def skip_failure = params.SKIP_FAILURE
+          echo "${skip_failure}"
+          def json = readFile("${IMAGE_SCAN_RESULTS}")
+          def vulnerabilities = new groovy.json.JsonSlurper().parseText(json)
+          def highSeverityVulnerabilities = vulnerabilities.high
+          echo "highSeverityVulnerabilities : ${highSeverityVulnerabilities}"
+          if (highSeverityVulnerabilities > 0) {
+            if (skip_failure) {
+              echo "High severity vulnerabilities found, but the pipeline will continue as SKIP_FAILURE is enabled."
+            } else {
+              error("High severity vulnerabilities found in the image scan results.")
+            }
+          }
+        }
+      } 
     }
+
 
     stage('Push Image') {
       when { expression { BRANCH_NAME == 'master' } }
@@ -87,7 +107,7 @@ pipeline {
 
     stage('Upgrade Dev Clusters') {
       when {
-        expression { BRANCH_NAME == 'master' }
+        expression { BRANCH_NAME == 'master' && currentBuild.result == 'SUCCESS' }
         beforeInput true
         beforeOptions true
       }
@@ -99,8 +119,24 @@ pipeline {
         ok "Yes, we should."
         submitter "${env.APPROVERS}"
       }
-      steps {
-        sh label: "Upgrade AWS Dev Clusters", script: "./cd.sh upgradeDevVaultClusters"
+      stages {
+        stage('Upgrade vcqe-dev Cluster') {
+          steps {
+            sh label: "Upgrade vcqe-dev Cluster", script: "./cd.sh upgradeDevVaultClusters vcqe-dev"
+          }
+        }
+
+        stage('Validation') {
+          steps {
+            sh label: "Validate Vault_monitor.rb", script: "/opt/coupa/bin/vault_monitor.rb"
+          }
+        }
+
+        stage('Upgrade dev-us-east-1 Cluster') {
+          steps {
+            sh label: "Upgrade dev-us-east-1 Cluster", script: "./cd.sh upgradeDevVaultClusters dev-us-east-1"
+          }
+        }
       }
     }
   }
@@ -111,7 +147,13 @@ pipeline {
     }
 
     always {
-      notifyBuild(currentBuild.currentResult, 'imageVulnerabilities')
+      script {
+        if (currentBuild.result == 'SUCCESS') {
+          notifyBuild(currentBuild.currentResult, 'imageVulnerabilities')
+        } else if (!env.SKIP_FAILURE) {
+          error("Pipeline failed. Check the build status and fix any issues.")
+        }
+      }
     }
   }
 }
