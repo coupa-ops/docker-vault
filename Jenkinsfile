@@ -49,7 +49,7 @@ pipeline {
           resultsFile: "${IMAGE_SCAN_RESULTS}",
           ignoreImageBuildTime: true
         echo 'Scanning completed for vulnerabilities in the image!!'
-
+            
         script {
           def skip_failure = params.SKIP_FAILURE
           echo "${skip_failure}"
@@ -65,8 +65,9 @@ pipeline {
             }
           }
         }
-      }
+      } 
     }
+  }
 
     stage('Push Image') {
       when { expression { BRANCH_NAME == 'master' } }
