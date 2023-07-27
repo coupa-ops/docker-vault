@@ -1,0 +1,12 @@
+name: byoci-workflow-scan
+
+on:
+  schedule:
+    - cron:  '0 0 1 * *'
+
+jobs:
+  call-workflow-call-in-another-repo:
+    uses: coupa-ops/workflows/.github/workflows/byoci_scan.yml@v1
+    with:
+      image_tag: 1.12.8
+      image_name: vault
