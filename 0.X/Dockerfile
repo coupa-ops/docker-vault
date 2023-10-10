@@ -1,7 +1,7 @@
-FROM alpine:3.18.2
+FROM alpine:3.18.4
 
 # This is the release of Vault to pull in.
-ARG VAULT_VERSION=1.12.10
+ARG VAULT_VERSION=1.13.8
 
 # Install dependencies
 RUN \
